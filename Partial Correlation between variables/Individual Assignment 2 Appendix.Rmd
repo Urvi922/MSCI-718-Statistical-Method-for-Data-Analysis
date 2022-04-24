@@ -1,0 +1,99 @@
+---
+title: "Individual Assignment 2 Appendix"
+output: pdf
+---
+
+```{r setup, include=FALSE,echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align = "center")
+library(ggplot2)
+library(knitr)
+library(tidyverse)
+library(dbplyr)
+library(ggpubr)
+library(ppcor)
+library(pastecs)
+library(boot)
+library(ggvenn)
+```
+
+```{r Data Preprosessing, echo=FALSE}
+df <- read.csv("TB_burden_countries_2021-02-03.csv")
+
+#Selected variables
+ df1 <-
+   df %>% dplyr::select(
+     country,
+     year,
+     e_inc_num,
+     e_mort_num,
+     e_mort_tbhiv_num,
+     e_mort_exc_tbhiv_num)
+
+# colSums(is.na(df1)) 
+df1<-df1 %>% drop_na(e_mort_num)
+colSums(is.na(df1))
+```
+
+
+**Calculation 1:Shapiro Wilk test before transformation**
+```{r assuption checking, echo=FALSE,warning=FALSE,fig.height=9,fig.height=2}
+#before transformation
+shapiro.test(df1$e_inc_num)
+shapiro.test(df1$e_mort_num)
+shapiro.test(df1$e_mort_exc_tbhiv_num)
+```
+
+
+**Log Transformation**
+```{R transformation,echo=FALSE}
+df1.log<- df1  %>%  mutate(log_e_mort = log(e_mort_num +1)) %>% mutate(log_e_inc = log(e_inc_num +1))  %>% mutate(log_e_mort_exc_tbhiv = log(e_mort_exc_tbhiv_num +1))
+```
+
+
+**Assumption test After Transformation**
+``` {r Assumptions and test, echo=FALSE, warning=FALSE, fig.width =9, fig.height = 2}
+# Normality Assumption Checking after transformation
+
+## e_mort_num
+
+qqplot.log.e_mort <- df1.log %>%  ggplot(aes(sample=log_e_mort)) + stat_qq() + geom_qq_line(aes(color="red")) + theme(legend.position = "none")+labs(title = "Estimate Mort TB cases")
+
+## e_inc_num
+ 
+
+qqplot.log.e_inc <- df1.log %>%  ggplot(aes(sample=log_e_inc)) + stat_qq() + geom_qq_line(aes(color="red")) + theme(legend.position = "none")+labs(title = "Estimate Number of TB cases")
+
+
+##e_mort_exc_tbhiv_num
+
+qqplot.log.e_mort_exc_tbhiv <- df1.log %>%  ggplot(aes(sample=log_e_mort_exc_tbhiv)) + stat_qq() + geom_qq_line(aes(color="red")) + theme(legend.position = "none")+labs(title = "Estimate Mort TB Non-HIV")
+
+# Grouping plots
+ggarrange(qqplot.log.e_inc, qqplot.log.e_mort, qqplot.log.e_mort_exc_tbhiv,ncol = 3, nrow = 1)
+
+
+```
+
+
+**Calculation 2:Pearson Correlation Test**
+```{r correlation,echo=FALSE}
+# Pearson
+
+cor_coef<- df1.log %>%
+  dplyr::select(log_e_inc, log_e_mort,log_e_mort_exc_tbhiv) %>%
+ cor(method = "pearson")
+
+
+cortest_e_incmort<-cor.test(df1.log$log_e_inc, df1.log$log_e_mort)
+cortest_e_incmort
+
+cortest_e_mort_exc_tbhiv<-cor.test(df1.log$log_e_inc, df1.log$log_e_mort_exc_tbhiv)
+cortest_e_mort_exc_tbhiv
+```
+
+
+**Calculation 3:Partial Correlation**
+```{r partial correlation test,echo=FALSE,warning=FALSE}
+ppcor::pcor.test(df1.log$log_e_inc,df1.log$log_e_mort,df1.log$log_e_mort_exc_tbhiv, method = "pearson")
+
+```

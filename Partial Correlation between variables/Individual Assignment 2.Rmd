@@ -1,0 +1,128 @@
+---
+title: "Individual Assignment 2"
+output: pdf_document
+---
+```{r setup, include=FALSE,echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align = "center")
+library(ggplot2)
+library(knitr)
+library(tidyverse)
+library(dbplyr)
+library(ggpubr)
+library(ppcor)
+library(pastecs)
+library(psych)
+```
+
+```{r Data Preprosessing, echo=FALSE}
+df <- read.csv("TB_burden_countries_2021-02-03.csv")
+
+#Selected variables
+ df1 <-
+   df %>% dplyr::select(
+     country,
+     year,
+     e_inc_num,
+     e_mort_num,
+     e_mort_exc_tbhiv_num)
+
+#Dropping missing values 
+df1<-df1 %>% drop_na(e_mort_num)
+
+```
+The features were selected from the dataset"TB_burden_countries", which has 4772 variables and 50 features. In, Individual Assignment 1, it was observed that features Estimate Number of TB cases and Estimate Mortality Rate of TB have positive relation, even  Estimate Mortality Rate of TB Non-Hiv cases is positively related to Estimate Number of TB cases. In this, assignment we will check the partial correlation between these features.
+
+The dataset consists of 4252 observations and 5 variables.Owing to the large size of dataset 20 missing values in the dataset were omitted.The plot below shows the range of values in the features.As we are checking for partial correlation between features we need to satisfy the assumptions of the test method being used.Let's first check if the data is normal or not, which will decide the partial correlation method to be used.
+```{r Data summary, echo=FALSE, fig.width =8, fig.height = 1.5}
+e_mort<-df1 %>%  ggplot(aes(x=seq(e_inc_num), y=e_inc_num)) + geom_point()
+
+e_mort_tbhiv<-df1 %>%  ggplot(aes(x=seq(e_mort_num), y=e_mort_num)) + geom_point()
+
+e_mort_exc_tbhiv <-df1 %>%  ggplot(aes(x=seq(e_mort_exc_tbhiv_num), y=e_mort_exc_tbhiv_num)) + geom_point()
+
+ggarrange(e_mort, e_mort_tbhiv,e_mort_exc_tbhiv,ncol = 3, nrow = 1)
+
+```
+According to Shapiro-Wilk normality test(can be found in Appendix Calculation 1) and below shown qq plot,Estimate Number of TB cases (W = 0.19285, p-value < 2.2e-16), Estimate Mortality of TB cases (W = 0.19005, p-value < 2.2e-16) and Estimate Mortality of TB Non-HIV cases (W = 0.15205, p-value < 2.2e-16) is significantly non-normal at the 5% level of significance. So, I transformed the data with log transformation because it is positively skewed.
+``` {r Assumptions and test, echo=FALSE, warning=FALSE, fig.width =8, fig.height = 1.5}
+# Normality Assumption Checking
+
+## e_mort_num
+
+
+qqplot.e_mort <- df1 %>%  ggplot(aes(sample=e_inc_num/1000000)) + stat_qq() + geom_qq_line(aes(color="red")) + theme(legend.position = "none")+labs(title = "Estimate Number of TB cases")
+
+## e_mort_tbhiv_num
+
+
+qqplot.e_mort_tbhiv <- df1 %>%  ggplot(aes(sample=e_mort_num/1000000)) + stat_qq() + geom_qq_line(aes(color="red")) + theme(legend.position = "none")+labs(title = "Estimate Mort TB cases")
+
+
+##e_mort_exc_tbhiv_num
+
+qqplot.e_mort_exc_tbhiv <- df1 %>%  ggplot(aes(sample=e_mort_exc_tbhiv_num/1000000)) + stat_qq() + geom_qq_line(aes(color="red")) + theme(legend.position = "none")+labs(title = "Estimate Mort TB Non-HIV")
+
+# Grouping plots
+ggarrange(qqplot.e_mort,  qqplot.e_mort_tbhiv, qqplot.e_mort_exc_tbhiv,ncol = 3, nrow = 1)
+
+
+```
+
+```{R transformation,echo=FALSE}
+df1.log<- df1  %>%  mutate(log_e_mort = log(e_mort_num +1)) %>% mutate(log_e_inc = log(e_inc_num +1))  %>% mutate(log_e_mort_exc_tbhiv = log(e_mort_exc_tbhiv_num +1))
+```
+From the qq plot below after log transformation, it is observed that the features are close to normal so I will use Pearson partial correlation test on the 3 selected features.As the data is interval data Pearson correlation test can be used with any directly on transformed data. In Individual Assignment 1 limited number of samples were selected to test for partial correlation and that's why the data after transformation was non-normal but in Individual Assignment 2, whole dataset was used and that's why the data after transformation is close to normal.
+``` {r Assumptions and test after transformation, echo=FALSE, warning=FALSE, fig.width =8, fig.height = 1.5}
+# Normality Assumption Checking after transformation
+
+## e_inc_num
+
+qqplot.log.e_inc <- df1.log %>%  ggplot(aes(sample=log_e_inc)) + stat_qq() + geom_qq_line(aes(color="red")) + theme(legend.position = "none")+labs(title = "Estimate Number of TB cases")
+
+
+## e_mort_num
+
+qqplot.log.e_mort <- df1.log %>%  ggplot(aes(sample=log_e_mort)) + stat_qq() + geom_qq_line(aes(color="red")) + theme(legend.position = "none")+labs(title = "Estimate Mort TB cases")
+
+##e_mort_exc_tbhiv_num
+
+qqplot.log.e_mort_exc_tbhiv <- df1.log %>%  ggplot(aes(sample=log_e_mort_exc_tbhiv)) + stat_qq() + geom_qq_line(aes(color="red")) + theme(legend.position = "none")+labs(title = "Estimate Mort TB Non-HIV")
+
+# Grouping plots
+ggarrange(qqplot.log.e_inc, qqplot.log.e_mort, qqplot.log.e_mort_exc_tbhiv,ncol = 3, nrow = 1)
+
+
+```
+Let's look at full correlation between variable Estimate Number of cases and Estimate Mortality rate.The Pearson correlation coefficient(can be found in Appendix Calculation 2) between  Estimate Number TB cases and Estimate Mortality of TB cases is 0.9686306 with 93.8 % variance, which means both the features are  positively correlated with 5% significance level. The Pearson correlation coefficient of Estimate number is TB cases and Estimate Mortality of TB Non-HIV cases is 0.9697551  with 94% variance, which means there exists a strong positive relation between the variables at 5% significance level as well.The figure below shows the partial correlation between variables and it's coefficient,along with it's distribution.
+
+Now, let's check the partial correlation between Estimate Number of TB cases and Estimate Mortality Rate while controlling Estimate Mortality of TB Non-HIV cases, and how does it affect the relation between Estimate Number of TB cases and Estimate Mortality Rate.
+```{r correlation,include=FALSE}
+# Pearson
+
+cor_coef<- df1.log %>%
+  dplyr::select(log_e_inc,log_e_mort,  log_e_mort_exc_tbhiv) %>%
+ cor(method = "pearson")
+
+cortest_e_incmort<-cor.test(df1.log$log_e_inc, df1.log$log_e_mort)
+cortest_e_incmort
+
+cortest_e_mort_exc_tbhiv<-cor.test(df1.log$log_e_inc, df1.log$log_e_mort_exc_tbhiv)
+cortest_e_mort_exc_tbhiv
+```
+
+```{r plotting corelation,echo=FALSE,warning=FALSE,fig.height=5,fig.width=4.5}
+pairs.panels(df1.log[,6:8],
+             method = "pearson", # correlation method
+             hist.col = "#00AFBB",
+             density = TRUE,  # show density plots
+             ellipses = TRUE # show correlation ellipses
+             )
+```
+
+```{r partial correlation test,include=FALSE,warning=FALSE}
+ ppcor::pcor.test(df1.log$log_e_inc,df1.log$log_e_mort,df1.log$log_e_mort_exc_tbhiv, method = "pearson")
+
+```
+The partial correlation using pearson method (can be found in Appendix Calculation 3) between Estimate number of TB cases, Estimate Mortality of TB cases,while controlling Estimate Mortality TB Non-HiV cases is 0.1700833, and the variance that is shared is 0.02892, or 2.892% which shows small relationship between the variables at 5% significance level. 
+
+It is considerably less than full correlation between Estimate number of TB cases and Estimate Mortality of TB cases 0.9686306 with 93.8% variance, when Estimate Mortality of TB Non-HIV cases was not controlled. Thus, it can be concluded that there is very small correlation between Estimate Number of TB cases and Estimate Mortality Of TB cases, but there exists a complex correlation between  Estimate number of TB cases, Estimate Mortality of TB cases and Estimate Mortality TB Non-HiV cases.
