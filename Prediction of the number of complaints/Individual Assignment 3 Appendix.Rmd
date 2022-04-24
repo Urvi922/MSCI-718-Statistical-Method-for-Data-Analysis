@@ -1,0 +1,102 @@
+---
+title: "Individual Assignment 3 Appendix"
+output:pdf
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = "center")
+library(ggplot2)
+library(tidyverse)
+library(dbplyr)
+library(ggpubr)
+library(plyr)
+library(car)
+library(ggiraphExtra)
+library(zoo)
+```
+  
+  
+  
+**Part 1:Glimpse of data**
+```{r reading dataset, echo=FALSE}
+df <- read.csv("complaints-2021-03-14_17_15.csv")
+glimpse(df)
+```
+```{r selecting features, include=FALSE,fig.width = 12, fig.height = 4}
+
+df1 <- df %>% dplyr::select(Date.received,Product) %>%  transmute(Date.received=as.Date(Date.received, format="%m/%d/%y"),Product) %>%  mutate(yearmonth=format(Date.received,"%y%m")) 
+
+df1['yearmonth'] <- type.convert(as.integer(df1$year))
+df1<-df1 %>% arrange(Date.received)
+```
+
+```{r data filtering,include=FALSE,fig.width = 12, fig.height = 4}
+df2<- df1 %>% count('yearmonth')
+df3<- subset(df2, yearmonth!="1112")
+df4<- subset(df3, yearmonth!="2101")
+df5<- subset(df4, yearmonth!="2102")
+df6<- subset(df5, yearmonth!="2103")
+
+df7<- dplyr::rename(df6, c("complaints" = "freq"))
+
+
+# plot1<-ggplot(df13, aes(y=complaints, x=as.factor(yearmonth))) +geom_point() + labs(x="yearmonth",y="complaints")+
+# theme(axis.text.x = element_text(size =7, angle = 90))
+# plot1
+
+
+# plot1<- ggplot(aes(x=complaints)) +geom_histogram()
+# plot1
+
+plot2 <- ggplot(df7, aes(x=as.factor(yearmonth),y=complaints,fill=as.factor(yearmonth))) + geom_bar(stat = 'identity',show.legend =FALSE)+ labs(x = "Year Month", y = "Complaints", title = "Complaints per Month per Year")+theme(axis.text.x = element_text(angle = 90, hjust = 1))
+plot2
+
+```
+  
+  
+   
+**Part2:Variance Non-Zero Checking**
+```{r asummption checking,echo=FALSE}
+# non zero variance checking
+vars<-apply(df7, 2, var)
+vars
+```
+   
+  
+   
+**Part 3:Coefficient obtained from linear regression model**
+```{r linear regression,echo=FALSE}
+model1 <- lm(complaints~yearmonth, data=df7)
+model1
+```
+     
+   
+   
+**Part4:Summary of linear regression model**
+```{r summary, echo=FALSE}
+summary(model1)
+```
+  
+  
+    
+**Part 5:Durbin Watson Test Output**
+```{r test, echo=FALSE}
+durbinWatsonTest(model1)
+```
+  
+  
+  
+**Part 6: Prediction Calculation**
+```{r prediction,echo=FALSE}
+values=tibble(yearmonth=c(2201,2201,2203,2204,2205,2206,2207,2208,2209,2210,2211,2212))
+predicts<-predict.lm(model1, values)
+sum (predicts)
+```
+
+  
+  
+**References**
+
+1. Christiaan Defaux (2019, Aug 9).*Using the Durbin-Watson (DW) test for testing time-series autocorrelation.* Retrieved from
+https://medium.com/@cdefaux/using-the-durbin-watson-dw-test-for-time-series-data-b87bd884fbbdhttps://medium.com/@cdefaux/using-the-durbin-watson-dw-test-for-time-series-data-b87bd884fbbd
+
+2. ANDY FIELD, JEREMY MILES, & ZOË FIELD (2012).*Discovering statistics Using r*, SAGE Publications Ltd:My Publisher
