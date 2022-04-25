@@ -1,0 +1,168 @@
+---
+title: 'Pair Assignment 2: Appendix'
+output:
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = "center", fig.height = 4, fig.width = 6)
+library(ggplot2)
+library(tidyverse)
+library(dbplyr)
+library(kableExtra)
+library(plyr)
+```
+
+**Observations and Variables of dataset :**
+
+```{r glimpse}
+estimate_cont<-read.csv("TB_burden_countries_2021-02-03.csv")
+
+#Shortening Country names
+estimate_cont$country <- revalue(estimate_cont$country, c("United Republic of Tanzania" = "URT", "South Africa" = "SA", "Mozambique" = "Moz"))
+
+glimpse(estimate_cont)
+
+```
+
+**Head of selected variables :**
+
+```{r hypothesis}
+
+#Countires with high number of tb cases with documented hiv
+e_tbhiv_count<- estimate_cont %>% select(country,year,e_inc_tbhiv_num)
+head(e_tbhiv_count)
+```
+
+**Countries having highest number of Cases :**
+
+```{r}
+high_hivpos<-estimate_cont %>% filter(e_inc_tbhiv_num>=50000)
+
+# Selected countries having highest tb cases with documented HIV.(count percentage cases in this countries)
+
+ selected_cont_year<-filter(estimate_cont,((country=="India"  |country=="Kenya" |country=="SA" |country=="Nigeria"|country=="URT")))
+  
+ pop_cases <-
+   ggplot(data = selected_cont_year, aes(x = country, y = e_inc_tbhiv_num /1000000)) +
+   geom_bar(aes(),
+            position = "dodge",
+            stat = "identity",
+            fill = "blue")
+pop_cases
+
+```
+**Head for countries :**
+
+```{r}
+dataset <-
+  estimate_cont %>% select(
+    country,
+    year,
+    e_inc_num,
+    e_inc_tbhiv_num,
+    e_mort_num,
+    e_mort_tbhiv_num,
+    e_mort_exc_tbhiv_num
+  )
+filtered <-
+  filter(
+    dataset,
+    (
+      country == "Kenya" |
+        country == "SA" |
+        country == "Nigeria" |
+        country == "URT" |
+        country == "India"
+    )
+  )
+head(filtered)
+```
+ 
+**Plot for Documented HIV-TB cases :**
+
+```{r}
+
+#TB with HIV cases
+g <-
+  ggplot(filtered, aes(x = year)) +                              geom_bar(
+    aes(y = e_inc_tbhiv_num),
+    stat = "identity",
+    fill = "green"
+  )
+g
+```
+
+**Plot for Non_HIV-TB cases :**
+
+```{r}
+#Calculation for Non-HIV cases
+e_exc_tbhiv_num <- (filtered$e_inc_num) - (filtered$e_inc_tbhiv_num)
+
+#TB with Non-HIV cases
+g3 <-
+  ggplot(filtered, aes(x = year)) +                          geom_bar(
+    aes(y = e_exc_tbhiv_num/1000000),
+    stat = "identity",
+    fill = "green",
+    show.legend = TRUE
+  )
+g3
+
+```
+
+**Plot for Documented HIV-TB mortality rate :**
+
+```{r}
+# mortality rate of TB with HIV 
+g1 <-
+  ggplot(filtered, aes(x = year)) +   geom_bar(
+    mapping = aes(y = e_mort_tbhiv_num/1000000),
+    stat = "identity",
+    fill = "#CC3399"
+  ) + labs(y = "Cases and Mortality-rate of TB-HIV positive", x = "Year")
+
+g1
+
+```
+
+**Plot for Non_HIV-TB mortality rate :**
+
+```{r}
+#mortality rate TB with Non-HIV cases
+g2 <-
+  ggplot(filtered, aes(x = year)) +  geom_bar(
+    mapping = aes(y = e_mort_exc_tbhiv_num/1000000),
+    stat = "identity"        ,
+    fill = "#CC3399",
+    show.legend = TRUE
+  )+labs(y = "Cases and Mortality-rate of TB-NonHIV", x = "Year")
+
+g2
+
+```
+
+
+**Plot for Total/HIV/Non-HIV rates :**
+
+```{r conclusion}
+# plot tb hiv cases with hiv and mortality of tb with hiv. 4 variables required e_inc_tbhiv_num, e_mort_exc_tbhiv_num, e_mort_tbhiv_num,e_inc_num in the selected countires 
+
+
+tbhiv_mort<-ggplot(selected_cont_year, aes(x=year)) + 
+            geom_bar(aes(y=(e_mort_num/1000000)),stat="identity", fill="green",alpha=0.2,show.legend=TRUE) +          geom_bar(mapping = aes(y=e_mort_exc_tbhiv_num/1000000),stat="identity",fill="pink",show.legend=TRUE) +        geom_bar(mapping = aes(y=e_mort_tbhiv_num/1000000),stat="identity",fill="lightblue",show.legend=TRUE)+        labs(title="Total/HIV/Non-HIV death rates",x="Years",y="Mortality Rates(In millions)")
+tbhiv_mort
+
+
+```
+
+
+```{r}
+x<-cbind(c("Urvi","-","Ayushi","-"),c("Urvi","Ayushi","-","-"),c("Ayushi","Urvi","Urvi","-"),c("-","-","Ayushi","Both"))
+colnames(x) <- c("Question 1","Question 2","Question 3","Question 4")
+rownames(x) <- c("Exploratory Analysis","Hypothesis","Plots","Conclusion")
+
+x %>%
+  kbl(caption="Individual Contribution") %>%
+  kable_classic(full_width = F, html_font = "Cambria")
+```
