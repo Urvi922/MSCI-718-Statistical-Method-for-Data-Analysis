@@ -1,0 +1,93 @@
+---
+title: "Pair Assignment 1 Revision"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = "center")
+library(lattice)
+library(ggplot2)
+library(dbplyr)
+library(tidyverse)
+library(plotrix)
+library(tibble)
+library(rcompanion)
+library(ggpubr)
+library(kableExtra)
+```
+
+# Summary of dataset 
+
+The dataset 'ChickWeight' has 578 number of observations and 4 different variables, which provides information as follows :
+
+**weight** : The body weight of the chick (gm) - numeric
+
+**Time** : The number of days since birth when the measurement was made - numeric
+
+**Diet** : which experimental diet the chick received - factorial
+
+**Chick** : levels 18 < ... < 48 giving a unique identifier for the chick - ordered factor
+
+# Central Tendency
+
+Dataset shows variation in weight of chicks, from day 0 to day 20 for 4 different diets. Thus, Weight is the an important numeric feature in this dataset, so we'll show central tendency of weight.
+
+The average weight of chick is `r summary(ChickWeight$weight)['Mean']` gm, for all days and diets, where range of weight is between `r summary(ChickWeight$weight)['Min.']` and `r summary(ChickWeight$weight)['Max.']`.
+
+```{r boxplot, fig.height=4}
+boxplot(weight ~ Diet, data=ChickWeight, ylab="Weight" , main="Range of weight", col='lightblue')
+```
+
+Central tendency measure, range and outliers for feature 'weight'(diet-wise) is shown in above plot. As the outliers are close to range, we can ignore it's affect on dataset.
+
+# Confidence Interval
+
+A confidence interval, in statistics, refers to the probability that a population parameter will fall between a set of values for a certain proportion of times. Confidence intervals measure the degree of uncertainty or certainty in a sampling method. They can take any number of probability limits, with the most common being a 95% or 99% confidence level. (Reference : Investopedia)
+
+In this assignment, we have used 95% confidence level.
+
+## CI at Day 0
+
+```{r}
+index1 <- ChickWeight$Time == 0
+result1 <- subset(ChickWeight[index1, ], select = c(weight, Diet))
+Sum1 = groupwiseMean(data   = result1,
+                    var    = "weight",
+                    group  = "Diet",
+                    conf   = 0.95,
+                    digits = 3)
+Sum1
+```
+
+For Day 0, diet 1 has highest mean weight 41.4, with 95% confidence, the population parameter is between 40.9 and 41.9. Mean weight of diet 4 is close to diet 1 with overlapping confidence interval. Whereas, mean weight of diet 2 and 3 is considerably lower than diet 2 and 3.
+
+## CI at Day 20
+
+```{r}
+index <- ChickWeight$Time == 20
+result <- subset(ChickWeight[index, ], select = c(weight, Diet))
+Sum = groupwiseMean(data   = result,
+                    var    = "weight",
+                    group  = "Diet",
+                    conf   = 0.95,
+                    digits = 3)
+Sum
+```
+
+After 20 days, the mean weight of diet 3 is the highest with 95% confidence, population parameter is between 212 and 306. Whereas, mean weight of diet 1, which was highest on day 0, is lowest on day 20 compared to other diets.
+
+```{r, fig.height=3.5, fig.width=10}
+my_plot <- qplot(x = Diet , y = Mean, data = Sum1, color = Diet) + 
+  geom_point(shape = 15, size  = 2,) + 
+  geom_errorbar(aes(ymin = Trad.lower, ymax = Trad.upper, width = 0.5)) +    labs(title = "Weight range at Day 0",x = 'Diet', y = 'Mean Weight(gm)')
+
+my_plot1 <- qplot(x = Diet , y = Mean, data = Sum, color = Diet) + 
+  geom_point(shape = 15, size  = 2,) + 
+  geom_errorbar(aes(ymin = Trad.lower, ymax = Trad.upper, width = 0.5)) +    labs(title = "Weight range at Day 20",x = 'Diet', y = 'Mean Weight(gm)')
+
+ggarrange(my_plot, my_plot1, ncol = 2, nrow = 1)
+```
+
+# Conclusion 
+
+Overall weight of all chickens, has increased over the time of 20 days. However, Diet 3 has been most effective in increasing weight of chicks compared to diet 1,2 and 4. Also, Diet 1 is less effective. So, One should go with Diet 3 to feed their chicks.
